@@ -38,8 +38,8 @@ const Signup: React.FC = () => {
       newErrors.username = 'Username is required';
     } else if (formData.username.length < 3) {
       newErrors.username = 'Username must be at least 3 characters long';
-    } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-      newErrors.username = 'Username can only contain letters, numbers, and underscores';
+    } else if (!/^[a-zA-Z0-9_-]+$/.test(formData.username)) {
+      newErrors.username = 'Username can only contain letters, numbers, underscores, and hyphens';
     }
 
     // Email validation
@@ -49,13 +49,13 @@ const Signup: React.FC = () => {
       newErrors.email = 'Please enter a valid email address';
     }
 
-    // Password validation
+    // Password validation - match backend requirements
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters long';
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])/.test(formData.password)) {
+      newErrors.password = 'Password must contain uppercase, lowercase, digit, and special character';
     }
 
     // Confirm password validation
@@ -97,23 +97,28 @@ const Signup: React.FC = () => {
 
     try {
       const response = await authApi.signup({
+        username: formData.username,
         email: formData.email,
         password: formData.password,
-        name: formData.username,
       });
       
       if (response.success) {
-        // Store token in localStorage
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
+        // Use AuthContext to handle login after signup
+        login(response.token, response.user);
+        
+        // Show success message (optional)
+        console.log('Signup successful!');
         
         // Redirect to dashboard or feed
         navigate('/feed');
       } else {
         setErrors({ general: response.message || 'Signup failed. Please try again.' });
       }
-    } catch (error) {
-      setErrors({ general: 'An error occurred. Please try again.' });
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      setErrors({ 
+        general: error.message || 'An error occurred. Please try again.' 
+      });
     } finally {
       setIsLoading(false);
     }
@@ -261,4 +266,4 @@ const Signup: React.FC = () => {
   );
 };
 
-export default Signup; 
+export default Signup;

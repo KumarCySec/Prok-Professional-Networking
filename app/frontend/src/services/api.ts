@@ -1,44 +1,67 @@
 const API_URL = 'http://localhost:5000';
 
-export const api = {
-  // Auth endpoints
-  login: async (credentials: { email: string; password: string }) => {
-    const response = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(credentials),
-    });
-    return response.json();
-  },
+// Helper function to get auth token from localStorage
+const getAuthToken = (): string | null => {
+  return localStorage.getItem('token');
+};
 
-  signup: async (userData: { email: string; password: string; name: string }) => {
-    const response = await fetch(`${API_URL}/auth/signup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userData),
-    });
-    return response.json();
-  },
+// Helper function to handle API responses
+const handleResponse = async (response: Response) => {
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
+  }
+  
+  return data;
+};
 
-  // Profile endpoints
-  getProfile: async () => {
-    const response = await fetch(`${API_URL}/profile`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-    });
-    return response.json();
-  },
+// Generic authenticated API request function
+export const authenticatedRequest = async (
+  endpoint: string, 
+  options: RequestInit = {}
+): Promise<any> => {
+  const token = getAuthToken();
+  
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      ...options.headers,
+    },
+  });
+  
+  return handleResponse(response);
+};
 
-  updateProfile: async (profileData: any) => {
-    const response = await fetch(`${API_URL}/profile`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-      body: JSON.stringify(profileData),
-    });
-    return response.json();
-  },
-}; 
+// Generic API request function (for non-authenticated endpoints)
+export const apiRequest = async (
+  endpoint: string, 
+  options: RequestInit = {}
+): Promise<any> => {
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+  
+  return handleResponse(response);
+};
+
+// Check if user is authenticated
+export const isAuthenticated = (): boolean => {
+  return !!getAuthToken();
+};
+
+// Get current user from localStorage
+export const getCurrentUser = () => {
+  const userStr = localStorage.getItem('user');
+  return userStr ? JSON.parse(userStr) : null;
+};

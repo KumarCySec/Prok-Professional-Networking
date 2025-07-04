@@ -4,12 +4,12 @@ import { authApi } from './api';
 import { useAuth } from '../../context/AuthContext';
 
 interface LoginFormData {
-  email: string;
+  username_or_email: string;
   password: string;
 }
 
 interface LoginErrors {
-  email?: string;
+  username_or_email?: string;
   password?: string;
   general?: string;
 }
@@ -18,20 +18,19 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [formData, setFormData] = useState<LoginFormData>({
-    email: '',
+    username_or_email: '',
     password: '',
   });
   const [errors, setErrors] = useState<LoginErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
   const validateForm = (): boolean => {
     const newErrors: LoginErrors = {};
 
-    // Email validation
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+    // Username/Email validation
+    if (!formData.username_or_email.trim()) {
+      newErrors.username_or_email = 'Username or email is required';
     }
 
     // Password validation
@@ -57,6 +56,11 @@ const Login: React.FC = () => {
         [name]: undefined,
       }));
     }
+    
+    // Clear success message when user starts typing
+    if (successMessage) {
+      setSuccessMessage('');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,21 +72,31 @@ const Login: React.FC = () => {
 
     setIsLoading(true);
     setErrors({});
+    setSuccessMessage('');
 
     try {
+      console.log('Submitting login form...');
       const response = await authApi.login(formData);
       
       if (response.success) {
-        // Use AuthContext to handle login
-        login(response.token, response.user);
+        // Store token and user data using AuthContext
+        login(response.token!, response.user!);
         
-        // Redirect to dashboard or feed
-        navigate('/feed');
+        // Show success message
+        setSuccessMessage('Login successful! Redirecting...');
+        
+        // Redirect to dashboard or feed after a short delay
+        setTimeout(() => {
+          navigate('/feed');
+        }, 1000);
       } else {
         setErrors({ general: response.message || 'Login failed. Please try again.' });
       }
-    } catch (error) {
-      setErrors({ general: 'An error occurred. Please try again.' });
+    } catch (error: any) {
+      console.error('Login error:', error);
+      setErrors({ 
+        general: error.message || 'An error occurred. Please try again.' 
+      });
     } finally {
       setIsLoading(false);
     }
@@ -109,24 +123,25 @@ const Login: React.FC = () => {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
+              <label htmlFor="username_or_email" className="sr-only">
+                Username or Email
               </label>
               <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
+                id="username_or_email"
+                name="username_or_email"
+                type="text"
+                autoComplete="username"
                 required
                 className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
-                  errors.email ? 'border-red-300' : 'border-gray-300'
+                  errors.username_or_email ? 'border-red-300' : 'border-gray-300'
                 } placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
-                placeholder="Email address"
-                value={formData.email}
+                placeholder="Username or Email"
+                value={formData.username_or_email}
                 onChange={handleInputChange}
+                disabled={isLoading}
               />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+              {errors.username_or_email && (
+                <p className="mt-1 text-sm text-red-600">{errors.username_or_email}</p>
               )}
             </div>
             <div>
@@ -145,12 +160,19 @@ const Login: React.FC = () => {
                 placeholder="Password"
                 value={formData.password}
                 onChange={handleInputChange}
+                disabled={isLoading}
               />
               {errors.password && (
                 <p className="mt-1 text-sm text-red-600">{errors.password}</p>
               )}
             </div>
           </div>
+
+          {successMessage && (
+            <div className="rounded-md bg-green-50 p-4">
+              <div className="text-sm text-green-700">{successMessage}</div>
+            </div>
+          )}
 
           {errors.general && (
             <div className="rounded-md bg-red-50 p-4">
@@ -188,4 +210,4 @@ const Login: React.FC = () => {
   );
 };
 
-export default Login; 
+export default Login;

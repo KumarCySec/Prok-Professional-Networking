@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom';
 import Login from '../components/auth/Login';
 import Signup from '../components/auth/Signup';
+import AuthTest from '../components/auth/AuthTest';
 import ProfileView from '../components/profile/ProfileView';
 import ProfileEdit from '../components/profile/ProfileEdit';
 import PostCreate from '../components/posts/PostCreate';
@@ -21,6 +22,14 @@ export const router = createBrowserRouter([
   {
     path: '/signup',
     element: <Signup />,
+  },
+  {
+    path: '/auth-test',
+    element: <AuthTest />,
+  },
+  {
+    path: '/feed',
+    element: <Feed />,
   },
   {
     path: '/profile',
@@ -46,4 +55,4 @@ export const router = createBrowserRouter([
     path: '/messages',
     element: <MessageList />,
   },
-]); 
+]);
