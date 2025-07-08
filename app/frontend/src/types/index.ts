@@ -1,5 +1,6 @@
 export interface User {
   id: number;
+  username: string;
   email: string;
   name: string;
   created_at: string;
@@ -7,21 +8,37 @@ export interface User {
 
 export interface Profile {
   id: number;
-  user_id: number;
+  userId: number;
+  firstName: string;
+  lastName: string;
+  title: string;
   bio: string;
   location: string;
   skills: string[];
   experience: Experience[];
   education: Education[];
+  avatar: string;
+  coverImage: string;
+  socialLinks: SocialLinks;
+  contactInfo: ContactInfo;
+  activity: Activity[];
+  connections: {
+    total: number;
+    mutual: number;
+  };
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Experience {
   id: number;
   title: string;
   company: string;
-  start_date: string;
-  end_date: string;
+  location: string;
+  startDate: string;
+  endDate: string;
   description: string;
+  current: boolean;
 }
 
 export interface Education {
@@ -29,8 +46,11 @@ export interface Education {
   school: string;
   degree: string;
   field: string;
-  start_date: string;
-  end_date: string;
+  institution: string;
+  gpa?: string;
+  startDate: string;
+  endDate: string;
+  current: boolean;
 }
 
 export interface Post {
@@ -66,4 +86,27 @@ export interface Message {
   content: string;
   created_at: string;
   read: boolean;
+}
+
+export interface SocialLinks {
+  linkedin?: string;
+  twitter?: string;
+  github?: string;
+  website?: string;
+}
+
+export interface ContactInfo {
+  email: string;
+  phone: string;
+  address?: string;
+}
+
+export interface Activity {
+  id: number;
+  type: string;
+  title: string;
+  description: string;
+  timestamp: string;
+  likes?: number;
+  comments?: number;
 } 

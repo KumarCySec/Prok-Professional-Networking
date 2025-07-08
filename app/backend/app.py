@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from config import Config
 from extensions import db, migrate, jwt
 
@@ -21,10 +22,29 @@ def create_app(config_class=Config):
     
     # Register blueprints
     from api.auth import auth_bp, init_limiter
+    from api.profile import profile_bp
     app.register_blueprint(auth_bp)
+    app.register_blueprint(profile_bp)
     
     # Initialize rate limiter
     init_limiter(app)
+    
+    # Set up file serving for uploads
+    from flask import send_from_directory
+    import os
+    
+    @app.route('/uploads/<path:filename>')
+    def uploaded_file(filename):
+        """Serve uploaded files"""
+        upload_folder = app.config['UPLOAD_FOLDER']
+        return send_from_directory(upload_folder, filename)
+    
+    @app.route('/api/test-auth')
+    @jwt_required()
+    def test_auth():
+        """Test endpoint to verify JWT authentication"""
+        current_user_id = get_jwt_identity()
+        return {'message': 'JWT working', 'user_id': current_user_id}
     
     return app
 

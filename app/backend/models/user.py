@@ -1,4 +1,5 @@
 import re
+import json
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError
@@ -16,6 +17,21 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
+    
+    # Profile fields (added by migration)
+    first_name = db.Column(db.String(100), nullable=True)
+    last_name = db.Column(db.String(100), nullable=True)
+    bio = db.Column(db.Text, nullable=True)
+    location = db.Column(db.String(100), nullable=True)
+    company = db.Column(db.String(100), nullable=True)
+    job_title = db.Column(db.String(100), nullable=True)
+    website = db.Column(db.String(200), nullable=True)
+    phone = db.Column(db.String(20), nullable=True)
+    profile_image_url = db.Column(db.String(500), nullable=True)
+    skills = db.Column(db.Text, nullable=True)  # JSON string
+    experience_years = db.Column(db.Integer, nullable=True)
+    education = db.Column(db.Text, nullable=True)  # JSON string
+    social_links = db.Column(db.Text, nullable=True)  # JSON string
     
     def __init__(self, username, email, password):
         """Initialize user with validation"""
@@ -81,6 +97,19 @@ class User(db.Model):
             'id': self.id,
             'username': self.username,
             'email': self.email,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'bio': self.bio,
+            'location': self.location,
+            'company': self.company,
+            'job_title': self.job_title,
+            'website': self.website,
+            'phone': self.phone,
+            'profile_image_url': self.profile_image_url,
+            'skills': self.skills,
+            'experience_years': self.experience_years,
+            'education': self.education,
+            'social_links': self.social_links,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'is_active': self.is_active
