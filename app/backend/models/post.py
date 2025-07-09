@@ -24,11 +24,12 @@ class Post(db.Model):
     # Post metadata
     tags = db.Column(db.Text, nullable=True)  # JSON string of tags
     visibility = db.Column(db.String(20), default='public')  # 'public', 'connections', 'private'
+    category = db.Column(db.String(50), default='general', index=True)  # Post category
     
     # Relationships
     user = db.relationship('User', backref=db.backref('posts', lazy='dynamic'))
     
-    def __init__(self, user_id, content, media_url=None, media_type=None, rich_content=None, tags=None, visibility='public'):
+    def __init__(self, user_id, content, media_url=None, media_type=None, rich_content=None, tags=None, visibility='public', category='general'):
         """Initialize post with validation"""
         self.user_id = user_id
         self.content = content
@@ -37,6 +38,7 @@ class Post(db.Model):
         self.rich_content = rich_content
         self.tags = json.dumps(tags) if tags else None
         self.visibility = visibility
+        self.category = category
     
     def save(self):
         """Save post to database"""
@@ -112,7 +114,7 @@ class Post(db.Model):
         if user_id:
             # For now, return all public posts
             # TODO: Implement connection-based filtering
-            query = query.filter(cls.visibility.in_(['public', 'connections']))
+            query = query.filter((cls.visibility == 'public') | (cls.visibility == 'connections'))
         
         return query.order_by(cls.created_at.desc())\
                    .limit(limit)\

@@ -18,12 +18,26 @@ export const postsApi = {
     return response.json();
   },
 
-  getPosts: async (params?: { limit?: number; offset?: number; user_id?: number }) => {
+  getPosts: async (params?: { 
+    page?: number; 
+    per_page?: number; 
+    user_id?: number;
+    search?: string;
+    category?: string;
+    visibility?: string;
+    tags?: string[];
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
+  }) => {
     const url = new URL(`${API_URL}/api/posts`);
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined) {
-          url.searchParams.append(key, value.toString());
+          if (key === 'tags' && Array.isArray(value)) {
+            url.searchParams.append(key, value.join(','));
+          } else {
+            url.searchParams.append(key, value.toString());
+          }
         }
       });
     }
@@ -37,6 +51,36 @@ export const postsApi = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Failed to fetch posts');
+    }
+    
+    return response.json();
+  },
+
+  getCategories: async () => {
+    const response = await fetch(`${API_URL}/api/posts/categories`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch categories');
+    }
+    
+    return response.json();
+  },
+
+  getPopularTags: async () => {
+    const response = await fetch(`${API_URL}/api/posts/popular-tags`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch popular tags');
     }
     
     return response.json();
