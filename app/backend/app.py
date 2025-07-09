@@ -23,8 +23,10 @@ def create_app(config_class=Config):
     # Register blueprints
     from api.auth import auth_bp, init_limiter
     from api.profile import profile_bp
+    from api.posts import posts_bp
     app.register_blueprint(auth_bp)
     app.register_blueprint(profile_bp)
+    app.register_blueprint(posts_bp)
     
     # Initialize rate limiter
     init_limiter(app)

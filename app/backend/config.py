@@ -29,6 +29,6 @@ class Config:
 
     # File upload configuration
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
-    MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB max file size
-    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10MB max file size
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'avi', 'mov', 'wmv'}
     UPLOAD_URL_PREFIX = '/uploads/'

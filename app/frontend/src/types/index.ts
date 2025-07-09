@@ -57,9 +57,23 @@ export interface Post {
   id: number;
   user_id: number;
   content: string;
-  created_at: string;
+  rich_content?: string;
+  media_url?: string;
+  media_type?: 'image' | 'video';
   likes: number;
   comments: Comment[];
+  tags: string[];
+  visibility: 'public' | 'connections' | 'private';
+  created_at: string;
+  updated_at: string;
+  is_active: boolean;
+  user?: {
+    id: number;
+    username: string;
+    first_name?: string;
+    last_name?: string;
+    profile_image_url?: string;
+  };
 }
 
 export interface Comment {
