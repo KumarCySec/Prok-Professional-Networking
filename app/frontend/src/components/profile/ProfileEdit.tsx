@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 
 const ProfileEdit: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, refreshUser } = useAuth();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -133,6 +133,10 @@ const ProfileEdit: React.FC = () => {
       setErrors(prev => ({ ...prev, image: '' }));
       const imageUrl = await uploadProfileImage(file);
       setProfile(prev => prev ? { ...prev, profile_image_url: imageUrl } : null);
+      
+      // Refresh user data in AuthContext to propagate the new profile image
+      await refreshUser();
+      
       setSuccessMessage('Profile image uploaded successfully!');
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
@@ -148,6 +152,10 @@ const ProfileEdit: React.FC = () => {
     try {
       await deleteProfileImage();
       setProfile(prev => prev ? { ...prev, profile_image_url: undefined } : null);
+      
+      // Refresh user data in AuthContext to propagate the profile image removal
+      await refreshUser();
+      
       setSuccessMessage('Profile image removed successfully!');
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);

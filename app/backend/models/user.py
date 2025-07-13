@@ -93,6 +93,21 @@ class User(db.Model):
     
     def to_dict(self):
         """Convert user to dictionary (excluding sensitive data)"""
+        try:
+            skills = json.loads(self.skills) if self.skills else []
+        except (json.JSONDecodeError, TypeError):
+            skills = []
+            
+        try:
+            education = json.loads(self.education) if self.education else []
+        except (json.JSONDecodeError, TypeError):
+            education = []
+            
+        try:
+            social_links = json.loads(self.social_links) if self.social_links else {}
+        except (json.JSONDecodeError, TypeError):
+            social_links = {}
+        
         return {
             'id': self.id,
             'username': self.username,
@@ -106,10 +121,10 @@ class User(db.Model):
             'website': self.website,
             'phone': self.phone,
             'profile_image_url': self.profile_image_url,
-            'skills': self.skills,
+            'skills': skills,
             'experience_years': self.experience_years,
-            'education': self.education,
-            'social_links': self.social_links,
+            'education': education,
+            'social_links': social_links,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'is_active': self.is_active

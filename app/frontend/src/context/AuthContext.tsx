@@ -1,12 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { User } from '../types';
+import { authApi } from '../components/auth/api';
 
 interface AuthContextType {
   user: User | null;
   login: (token: string, userData: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  refreshUser: () => Promise<void>;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -18,24 +21,61 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Check for existing authentication on app load
+  // Validate token and get current user on app load
   useEffect(() => {
+    validateTokenAndGetUser();
+  }, []);
+
+  const validateTokenAndGetUser = async () => {
     const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
     
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Validate token by calling /api/me endpoint
+      const response = await authApi.getCurrentUser();
+      
+      if (response.success && response.user) {
+        setUser(response.user);
         setIsAuthenticated(true);
-      } catch (error) {
-        // Invalid user data, clear storage
+      } else {
+        // Token is invalid, clear storage
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        setUser(null);
+        setIsAuthenticated(false);
       }
+    } catch (error) {
+      console.error('Token validation failed:', error);
+      // Token is invalid, clear storage
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+      setIsAuthenticated(false);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  };
+
+  const refreshUser = async () => {
+    try {
+      const response = await authApi.getCurrentUser();
+      if (response.success && response.user) {
+        setUser(response.user);
+        // Update localStorage with fresh user data
+        localStorage.setItem('user', JSON.stringify(response.user));
+      }
+    } catch (error) {
+      console.error('Failed to refresh user data:', error);
+      // If refresh fails, logout the user
+      logout();
+    }
+  };
 
   const login = (token: string, userData: User) => {
     localStorage.setItem('token', token);
@@ -52,7 +92,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated, refreshUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

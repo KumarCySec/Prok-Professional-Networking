@@ -69,6 +69,11 @@ class Post(db.Model):
     
     def to_dict(self):
         """Convert post to dictionary"""
+        try:
+            tags = json.loads(self.tags) if self.tags else []
+        except (json.JSONDecodeError, TypeError):
+            tags = []
+            
         return {
             'id': self.id,
             'user_id': self.user_id,
@@ -78,8 +83,9 @@ class Post(db.Model):
             'rich_content': self.rich_content,
             'likes_count': self.likes_count,
             'comments_count': self.comments_count,
-            'tags': json.loads(self.tags) if self.tags else [],
+            'tags': tags,
             'visibility': self.visibility,
+            'category': self.category,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'is_active': self.is_active,

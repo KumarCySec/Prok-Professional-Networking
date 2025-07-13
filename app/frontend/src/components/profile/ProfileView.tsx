@@ -289,7 +289,7 @@ const ProfileView: React.FC = () => {
                 }
               >
                 <div className="flex flex-wrap">
-                  {profile.skills.map((skill, index) => (
+                  {profile.skills?.map((skill, index) => (
                     <SkillBadge key={index} skill={skill} />
                   ))}
                 </div>
@@ -413,7 +413,7 @@ const ProfileView: React.FC = () => {
                 }
               >
                 <div className="space-y-4">
-                  {profile.education.map((edu, index) => (
+                  {profile.education?.map((edu, index) => (
                     <div key={index} className="border-l-4 border-purple-200 pl-4">
                       <h4 className="font-medium text-gray-900">{edu.school || edu.institution}</h4>
                       <p className="text-gray-600">{edu.degree} in {edu.field}</p>

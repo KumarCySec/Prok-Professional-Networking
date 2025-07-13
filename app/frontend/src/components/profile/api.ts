@@ -105,7 +105,8 @@ export const uploadProfileImage = async (file: File): Promise<string> => {
       throw new Error('No authentication token found');
     }
     
-    const response = await fetch('http://localhost:5000/api/profile/image', {
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const response = await fetch(`${API_URL}/api/profile/image`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

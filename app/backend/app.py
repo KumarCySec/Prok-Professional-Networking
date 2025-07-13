@@ -3,6 +3,7 @@ from flask_cors import CORS
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from config import Config
 from extensions import db, migrate, jwt
+import os
 
 def create_app(config_class=Config):
     """Application factory function"""
@@ -13,7 +14,16 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
-    CORS(app)
+    
+    # CORS configuration for production
+    ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,https://your-frontend-url.onrender.com').split(',')
+    
+    CORS(app,
+         origins=ALLOWED_ORIGINS,
+         methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+         allow_headers=['Content-Type', 'Authorization', 'X-Requested-With'],
+         supports_credentials=True,
+         max_age=3600)
     
     # Import and register models after db is initialized
     with app.app_context():
@@ -33,7 +43,6 @@ def create_app(config_class=Config):
     
     # Set up file serving for uploads
     from flask import send_from_directory
-    import os
     
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):

@@ -5,7 +5,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
-from sqlalchemy import desc, asc, func, or_, and_
+from sqlalchemy import desc, asc, func, or_, and_, text
 from models.post import Post
 from models.user import User
 from extensions import db
@@ -13,7 +13,7 @@ from extensions import db
 posts_bp = Blueprint('posts', __name__)
 
 # Simple in-memory cache for categories and popular tags
-_cache = {
+_cache: dict = {
     'categories': None,
     'popular_tags': None,
     'last_updated': None
@@ -75,6 +75,8 @@ def create_post():
         tag_list = []
         if tags:
             tag_list = [tag.strip() for tag in tags.split(',') if tag.strip()]
+            # Limit to 10 tags maximum
+            tag_list = tag_list[:10]
         
         # Handle media upload
         media_url = None

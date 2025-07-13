@@ -34,9 +34,11 @@ const mockVideoFile = (name: string, size: number) => {
 global.FileReader = class {
   onload: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
   readAsDataURL() {
-    if (this.onload) {
-      this.onload({ target: { result: 'data:image/jpeg;base64,test' } } as any);
-    }
+    setTimeout(() => {
+      if (this.onload) {
+        this.onload({ target: { result: 'data:image/jpeg;base64,test' } } as any);
+      }
+    }, 0);
   }
 } as any;
 
@@ -277,7 +279,7 @@ describe('Post Creation Component', () => {
 
       // Upload extremely large file
       const fileInput = screen.getByLabelText(/upload media/i);
-      const hugeFile = mockFile('huge.mp4', 150 * 1024 * 1024); // 150MB
+      const hugeFile = mockFile('huge.mp4', 150 * 1024 * 1024, 'video/mp4'); // 150MB
       
       fireEvent.change(fileInput, { target: { files: [hugeFile] } });
 

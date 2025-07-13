@@ -30,7 +30,7 @@ def sanitize_input(text):
 def validate_password_complexity(password):
     """Validate password meets complexity requirements"""
     if len(password) < 8:
-        return False, "Password must be at least 8 characters long"
+        return False, "Password must be at least 8 characters long" 
     
     # Check for uppercase, lowercase, digit, and special character
     has_upper = re.search(r'[A-Z]', password)

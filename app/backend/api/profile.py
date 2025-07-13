@@ -8,7 +8,7 @@ from models.profile import Profile
 from utils import (
     validate_image_file, process_image, save_uploaded_file, 
     get_file_url, delete_file, validate_phone_number, 
-    validate_website_url, sanitize_text
+    validate_website_url, sanitize_text, generate_unique_filename
 )
 from extensions import db
 
@@ -36,25 +36,6 @@ def get_profile():
         # Combine user and profile data
         profile_data = user.to_dict()
         profile_data.update(profile.to_dict())
-        
-        # Parse JSON fields
-        if profile_data.get('skills'):
-            try:
-                profile_data['skills'] = json.loads(profile_data['skills'])
-            except json.JSONDecodeError:
-                profile_data['skills'] = []
-        
-        if profile_data.get('education'):
-            try:
-                profile_data['education'] = json.loads(profile_data['education'])
-            except json.JSONDecodeError:
-                profile_data['education'] = []
-        
-        if profile_data.get('social_links'):
-            try:
-                profile_data['social_links'] = json.loads(profile_data['social_links'])
-            except json.JSONDecodeError:
-                profile_data['social_links'] = {}
         
         return jsonify({
             'success': True,
@@ -225,25 +206,6 @@ def update_profile():
         profile_data = user.to_dict()
         profile_data.update(profile.to_dict())
         
-        # Parse JSON fields for response
-        if profile_data.get('skills'):
-            try:
-                profile_data['skills'] = json.loads(profile_data['skills'])
-            except json.JSONDecodeError:
-                profile_data['skills'] = []
-        
-        if profile_data.get('education'):
-            try:
-                profile_data['education'] = json.loads(profile_data['education'])
-            except json.JSONDecodeError:
-                profile_data['education'] = []
-        
-        if profile_data.get('social_links'):
-            try:
-                profile_data['social_links'] = json.loads(profile_data['social_links'])
-            except json.JSONDecodeError:
-                profile_data['social_links'] = {}
-        
         return jsonify({
             'success': True,
             'message': 'Profile updated successfully',
@@ -291,8 +253,17 @@ def upload_profile_image():
             # Process image (resize, optimize)
             processed_image = process_image(file)
             
-            # Save to disk
-            filepath = save_uploaded_file(processed_image, 'profile_images')
+            # Generate unique filename
+            filename = generate_unique_filename(file.filename)
+            filepath = os.path.join('profile_images', filename)
+            full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filepath)
+            
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            
+            # Save processed image to disk
+            with open(full_path, 'wb') as f:
+                f.write(processed_image.getvalue())
             
             # Generate URL
             image_url = get_file_url(filepath)

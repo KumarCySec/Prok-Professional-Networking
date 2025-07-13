@@ -8,10 +8,14 @@ class Config:
     # Flask configuration
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     
-    # Database configuration - URL encode the password to handle special characters
+    # Database configuration - support for cloud databases
+    DATABASE_URL = os.environ.get('DATABASE_URL')
+    if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+    
     # Default password is URL-encoded to handle special characters like @
     default_password = quote_plus('Kumar@249')
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', f'mysql://root:{default_password}@localhost/prok_db')
+    SQLALCHEMY_DATABASE_URI = DATABASE_URL or f'mysql://root:{default_password}@localhost/prok_db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # JWT configuration
