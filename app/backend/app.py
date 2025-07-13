@@ -73,6 +73,31 @@ def create_app(config_class=Config):
             'cors_working': True
         }
     
+    @app.route('/api/db-test')
+    def db_test():
+        """Test endpoint to verify database connection"""
+        try:
+            # Test database connection
+            from sqlalchemy import text
+            db.session.execute(text('SELECT 1'))
+            db.session.commit()
+            
+            # Test User model
+            user_count = User.query.count()
+            
+            return {
+                'status': 'ok',
+                'message': 'Database connection successful',
+                'user_count': user_count,
+                'database_url': app.config.get('SQLALCHEMY_DATABASE_URI', 'Not set')[:50] + '...' if app.config.get('SQLALCHEMY_DATABASE_URI') else 'Not set'
+            }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': 'Database connection failed',
+                'error': str(e)
+            }, 500
+    
     @app.route('/api/test-auth')
     @jwt_required()
     def test_auth():
