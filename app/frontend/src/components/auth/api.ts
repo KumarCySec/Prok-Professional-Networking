@@ -28,6 +28,7 @@ export const authApi = {
         headers: { 
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(credentials),
       });
       
@@ -60,6 +61,7 @@ export const authApi = {
         headers: { 
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(userData),
       });
       
@@ -97,6 +99,7 @@ export const authApi = {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
       });
       
       const data = await handleResponse(response);
@@ -125,6 +128,7 @@ export const authApi = {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
+          credentials: 'include',
         });
       } catch (error) {
         // Even if logout fails, we still clear local storage

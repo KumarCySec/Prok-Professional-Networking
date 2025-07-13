@@ -9,48 +9,31 @@ import logging
 def create_app(config_class=Config):
     """Application factory function"""
     app = Flask(__name__)
+    
+    # Enable CORS - Place this RIGHT AFTER creating the Flask app
+    CORS(app,
+         origins=["https://prok-professional-networking-1-iv6a.onrender.com"],
+         supports_credentials=True,
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+         allow_headers=["Content-Type", "Authorization"])
+    
     app.config.from_object(config_class)
+    
+    # Session configuration for cross-origin requests
+    app.config['SESSION_COOKIE_SAMESITE'] = "None"
+    app.config['SESSION_COOKIE_SECURE'] = True
     
     # Initialize extensions with app
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
     
-    # CORS configuration for production - MUST be before registering blueprints
-    # Get allowed origins from environment variable
-    allowed_origins_env = os.getenv('ALLOWED_ORIGINS')
-    
-    if allowed_origins_env:
-        # Split by comma and strip whitespace
-        ALLOWED_ORIGINS = [origin.strip() for origin in allowed_origins_env.split(',') if origin.strip()]
-        app.logger.info(f"CORS configured with origins: {ALLOWED_ORIGINS}")
-    else:
-        # Use default origins from config
-        ALLOWED_ORIGINS = app.config.get('CORS_ORIGINS', [
-            'http://localhost:5173',
-            'http://127.0.0.1:5173',
-            'http://localhost:3000',
-            'http://127.0.0.1:3000'
-        ])
-        app.logger.warning("ALLOWED_ORIGINS not set, using default development origins")
-    
-    # Initialize CORS with proper configuration
-    CORS(app,
-         origins=ALLOWED_ORIGINS,
-         methods=app.config.get('CORS_METHODS', ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH']),
-         allow_headers=app.config.get('CORS_ALLOW_HEADERS', ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']),
-         expose_headers=app.config.get('CORS_EXPOSE_HEADERS', ['Content-Type', 'Authorization']),
-         supports_credentials=app.config.get('CORS_SUPPORTS_CREDENTIALS', True),
-         max_age=app.config.get('CORS_MAX_AGE', 3600))
-    
-    app.logger.info("CORS initialized successfully")
-    
     # Import and register models after db is initialized
     with app.app_context():
         from models.user import User
         from models.profile import Profile  # Import profile model to avoid import errors
     
-    # Register blueprints AFTER CORS is configured
+    # Register blueprints
     from api.auth import auth_bp, init_limiter
     from api.profile import profile_bp
     from api.posts import posts_bp
@@ -83,7 +66,12 @@ def create_app(config_class=Config):
     @app.route('/api/cors-test')
     def cors_test():
         """Test endpoint to verify CORS is working"""
-        return {'status': 'ok', 'message': 'CORS test successful', 'origin': request.headers.get('Origin')}
+        return {
+            'status': 'ok', 
+            'message': 'CORS test successful', 
+            'origin': request.headers.get('Origin'),
+            'cors_working': True
+        }
     
     @app.route('/api/test-auth')
     @jwt_required()
