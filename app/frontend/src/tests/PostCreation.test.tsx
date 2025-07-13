@@ -31,8 +31,23 @@ const mockVideoFile = (name: string, size: number) => {
 };
 
 // Mock FileReader
-global.FileReader = class {
+global.FileReader = class FileReader {
   onload: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
+  onerror: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
+  onabort: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
+  onloadend: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
+  onloadstart: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
+  onprogress: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
+  
+  readyState: number = 0;
+  result: string | ArrayBuffer | null = null;
+  error: DOMException | null = null;
+  
+  // EventTarget methods
+  addEventListener(_type: string, _listener: EventListener | EventListenerObject, _options?: boolean | AddEventListenerOptions): void {}
+  removeEventListener(_type: string, _listener: EventListener | EventListenerObject, _options?: boolean | EventListenerOptions): void {}
+  dispatchEvent(_event: Event): boolean { return true; }
+  
   readAsDataURL() {
     setTimeout(() => {
       if (this.onload) {
@@ -40,6 +55,10 @@ global.FileReader = class {
       }
     }, 0);
   }
+  
+  readAsText() {}
+  readAsArrayBuffer() {}
+  abort() {}
 } as any;
 
 const renderWithProviders = (component: React.ReactElement) => {
