@@ -3,42 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connection Test</title>
+    <title>API Connection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        input { width: 100%; padding: 8px; margin: 5px 0; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
 </head>
 <body>
-    <h1>Backend Connection Test</h1>
-    <button onclick="testConnection()">Test Backend Connection</button>
-    <div id="result"></div>
-
+    <h1>API Connection Test</h1>
+    
+    <div>
+        <label for="backendUrl">Backend URL:</label>
+        <input type="text" id="backendUrl" placeholder="https://your-backend-url.onrender.com" value="https://prok-professional-networking-se45.onrender.com">
+        <button onclick="testConnection()">Test Connection</button>
+    </div>
+    
+    <div id="results"></div>
+    
     <script>
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.textContent = message;
+            document.getElementById('results').appendChild(div);
+        }
+        
         async function testConnection() {
-            const resultDiv = document.getElementById('result');
-            resultDiv.innerHTML = 'Testing connection...';
+            const backendUrl = document.getElementById('backendUrl').value;
+            if (!backendUrl || backendUrl === 'https://your-backend-url.onrender.com') {
+                addResult('❌ Please enter your actual backend URL', 'error');
+                return;
+            }
             
+            addResult('Testing API connection...', 'info');
+            
+            // Test 1: Basic health check
             try {
-                const response = await fetch('http://localhost:5000/api/signup', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        username: 'test',
-                        email: 'test@test.com',
-                        password: 'TestPass123!'
-                    })
+                const response = await fetch(`${backendUrl}/`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
                 });
                 
-                const data = await response.json();
-                resultDiv.innerHTML = `
-                    <h3>Response Status: ${response.status}</h3>
-                    <pre>${JSON.stringify(data, null, 2)}</pre>
-                `;
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult(`✅ Health check successful: ${data.message}`, 'success');
+                } else {
+                    addResult(`⚠️ Health check failed with status: ${response.status}`, 'warning');
+                }
             } catch (error) {
-                resultDiv.innerHTML = `
-                    <h3>Error:</h3>
-                    <pre>${error.message}</pre>
-                `;
+                addResult(`❌ Health check failed: ${error.message}`, 'error');
             }
+            
+            // Test 2: API health check
+            try {
+                const response = await fetch(`${backendUrl}/api/health`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult(`✅ API health check successful: ${data.message}`, 'success');
+                } else {
+                    addResult(`⚠️ API health check failed with status: ${response.status}`, 'warning');
+                }
+            } catch (error) {
+                addResult(`❌ API health check failed: ${error.message}`, 'error');
+            }
+            
+            // Test 3: Test auth endpoint (should return 401 without token)
+            try {
+                const response = await fetch(`${backendUrl}/api/test-auth`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (response.status === 401) {
+                    addResult('✅ Auth endpoint working (401 Unauthorized is expected without token)', 'success');
+                } else if (response.ok) {
+                    addResult('✅ Auth endpoint working and responding!', 'success');
+                } else {
+                    addResult(`⚠️ Auth endpoint responded with status: ${response.status}`, 'warning');
+                }
+            } catch (error) {
+                addResult(`❌ Auth endpoint failed: ${error.message}`, 'error');
+            }
+            
+            addResult('---', 'info');
+            addResult('If all tests fail, check:', 'info');
+            addResult('1. Backend URL is correct', 'info');
+            addResult('2. Backend service is running on Render', 'info');
+            addResult('3. No CORS issues', 'info');
+            addResult('4. Environment variables are set correctly', 'info');
         }
     </script>
 </body>

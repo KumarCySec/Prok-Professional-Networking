@@ -28,6 +28,26 @@ class Config:
     # CORS configuration
     CORS_HEADERS = 'Content-Type'
     
+    # Get allowed origins from environment variable
+    ALLOWED_ORIGINS_ENV = os.environ.get('ALLOWED_ORIGINS')
+    if ALLOWED_ORIGINS_ENV:
+        CORS_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS_ENV.split(',') if origin.strip()]
+    else:
+        # Default origins for development
+        CORS_ORIGINS = [
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+            'http://localhost:3000',
+            'http://127.0.0.1:3000'
+        ]
+    
+    # CORS methods and headers
+    CORS_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH']
+    CORS_ALLOW_HEADERS = ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+    CORS_EXPOSE_HEADERS = ['Content-Type', 'Authorization']
+    CORS_SUPPORTS_CREDENTIALS = True
+    CORS_MAX_AGE = 3600
+    
     # Rate limiting configuration
     RATELIMIT_STORAGE_URL = 'memory://'
 
