@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from config import Config
@@ -16,7 +16,7 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     jwt.init_app(app)
     
-    # CORS configuration for production
+    # CORS configuration for production - MUST be before registering blueprints
     # Get allowed origins from environment variable
     allowed_origins_env = os.getenv('ALLOWED_ORIGINS')
     
@@ -50,7 +50,7 @@ def create_app(config_class=Config):
         from models.user import User
         from models.profile import Profile  # Import profile model to avoid import errors
     
-    # Register blueprints
+    # Register blueprints AFTER CORS is configured
     from api.auth import auth_bp, init_limiter
     from api.profile import profile_bp
     from api.posts import posts_bp
@@ -79,6 +79,11 @@ def create_app(config_class=Config):
     def api_health():
         """API health check endpoint"""
         return {'status': 'ok', 'message': 'API is running'}
+    
+    @app.route('/api/cors-test')
+    def cors_test():
+        """Test endpoint to verify CORS is working"""
+        return {'status': 'ok', 'message': 'CORS test successful', 'origin': request.headers.get('Origin')}
     
     @app.route('/api/test-auth')
     @jwt_required()
