@@ -1,9 +1,10 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
+import traceback
 from datetime import timedelta
 from extensions import db
 from models.user import User
@@ -13,12 +14,16 @@ auth_bp = Blueprint('auth', __name__)
 
 def init_limiter(app):
     """Initialize rate limiter with the Flask app"""
-    limiter = Limiter(
-        app=app,
-        key_func=get_remote_address,
-        default_limits=["200 per day", "50 per hour"]
-    )
-    return limiter
+    try:
+        limiter = Limiter(
+            app=app,
+            key_func=get_remote_address,
+            default_limits=["200 per day", "50 per hour"]
+        )
+        return limiter
+    except Exception as e:
+        current_app.logger.error(f"❌ Failed to initialize rate limiter: {e}")
+        return None
 
 def sanitize_input(text):
     """Sanitize user input to prevent injection attacks"""
@@ -47,43 +52,55 @@ def validate_password_complexity(password):
 def signup():
     """Registration endpoint - Allow new users to register"""
     try:
+        current_app.logger.info("📝 Signup request received")
+        
         # Get and sanitize input data
         data = request.get_json()
         if not data:
+            current_app.logger.warning("❌ Signup: No data provided")
             return jsonify({'error': 'No data provided'}), 400
         
         username = sanitize_input(data.get('username'))
         email = sanitize_input(data.get('email'))
         password = data.get('password')  # Don't sanitize password as it may contain special chars
         
+        current_app.logger.info(f"📝 Signup attempt for username: {username}, email: {email}")
+        
         # Validate required fields
         if not username or not email or not password:
+            current_app.logger.warning("❌ Signup: Missing required fields")
             return jsonify({'error': 'Username, email, and password are required'}), 400
         
         # Validate username format
         if len(username) < 3 or len(username) > 80:
+            current_app.logger.warning(f"❌ Signup: Invalid username length: {username}")
             return jsonify({'error': 'Username must be between 3 and 80 characters'}), 400
         
         if not re.match(r'^[a-zA-Z0-9_-]+$', username):
+            current_app.logger.warning(f"❌ Signup: Invalid username format: {username}")
             return jsonify({'error': 'Username can only contain letters, numbers, underscores, and hyphens'}), 400
         
         # Validate email format
         email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         if not re.match(email_pattern, email):
+            current_app.logger.warning(f"❌ Signup: Invalid email format: {email}")
             return jsonify({'error': 'Invalid email format'}), 400
         
         # Validate password complexity
         is_valid, password_message = validate_password_complexity(password)
         if not is_valid:
+            current_app.logger.warning(f"❌ Signup: Password complexity failed: {password_message}")
             return jsonify({'error': password_message}), 400
         
         # Check if user already exists
         existing_user = User.find_by_username(username)
         if existing_user:
+            current_app.logger.warning(f"❌ Signup: Username already exists: {username}")
             return jsonify({'error': 'Username already exists'}), 400
         
         existing_email = User.find_by_email(email)
         if existing_email:
+            current_app.logger.warning(f"❌ Signup: Email already exists: {email}")
             return jsonify({'error': 'Email already exists'}), 400
         
         # Create new user
@@ -92,7 +109,9 @@ def signup():
         # Save user to database
         try:
             new_user.save()
+            current_app.logger.info(f"✅ Signup successful for user: {username}")
         except ValueError as e:
+            current_app.logger.error(f"❌ Signup save error: {e}")
             return jsonify({'error': str(e)}), 400
         
         # Generate JWT token
@@ -109,6 +128,8 @@ def signup():
         }), 201
         
     except Exception as e:
+        current_app.logger.error(f"❌ Signup unexpected error: {e}")
+        current_app.logger.error(traceback.format_exc())
         db.session.rollback()
         return jsonify({'error': 'Internal server error'}), 500
 
@@ -116,16 +137,22 @@ def signup():
 def login():
     """Login endpoint - Authenticate users and issue JWT token"""
     try:
+        current_app.logger.info("🔐 Login request received")
+        
         # Get and sanitize input data
         data = request.get_json()
         if not data:
+            current_app.logger.warning("❌ Login: No data provided")
             return jsonify({'error': 'No data provided'}), 400
         
         username_or_email = sanitize_input(data.get('username_or_email'))
         password = data.get('password')
         
+        current_app.logger.info(f"🔐 Login attempt for: {username_or_email}")
+        
         # Validate required fields
         if not username_or_email or not password:
+            current_app.logger.warning("❌ Login: Missing required fields")
             return jsonify({'error': 'Username/email and password are required'}), 400
         
         # Find user by username or email
@@ -133,16 +160,24 @@ def login():
         if '@' in username_or_email:
             # Try to find by email
             user = User.find_by_email(username_or_email)
+            current_app.logger.info(f"🔍 Searching by email: {username_or_email}")
         else:
             # Try to find by username
             user = User.find_by_username(username_or_email)
+            current_app.logger.info(f"🔍 Searching by username: {username_or_email}")
         
         # Check if user exists and password is correct
-        if not user or not user.check_password(password):
+        if not user:
+            current_app.logger.warning(f"❌ Login: User not found: {username_or_email}")
+            return jsonify({'error': 'Invalid username/email or password'}), 401
+        
+        if not user.check_password(password):
+            current_app.logger.warning(f"❌ Login: Invalid password for user: {username_or_email}")
             return jsonify({'error': 'Invalid username/email or password'}), 401
         
         # Check if user is active
         if not user.is_active:
+            current_app.logger.warning(f"❌ Login: Inactive account: {username_or_email}")
             return jsonify({'error': 'Account is deactivated'}), 401
         
         # Generate JWT token
@@ -150,6 +185,8 @@ def login():
             identity=str(user.id),
             expires_delta=timedelta(hours=24)
         )
+        
+        current_app.logger.info(f"✅ Login successful for user: {username_or_email}")
         
         # Return success response
         return jsonify({
@@ -159,6 +196,8 @@ def login():
         }), 200
         
     except Exception as e:
+        current_app.logger.error(f"❌ Login unexpected error: {e}")
+        current_app.logger.error(traceback.format_exc())
         return jsonify({'error': 'Internal server error'}), 500
 
 @auth_bp.route('/api/me', methods=['GET'])
@@ -167,9 +206,12 @@ def get_current_user():
     """Get current user information"""
     try:
         current_user_id = get_jwt_identity()
+        current_app.logger.info(f"👤 Getting current user: {current_user_id}")
+        
         user = User.find_by_id(current_user_id)
         
         if not user:
+            current_app.logger.warning(f"❌ User not found: {current_user_id}")
             return jsonify({'error': 'User not found'}), 404
         
         return jsonify({
@@ -177,12 +219,23 @@ def get_current_user():
         }), 200
         
     except Exception as e:
+        current_app.logger.error(f"❌ Get current user error: {e}")
+        current_app.logger.error(traceback.format_exc())
         return jsonify({'error': 'Internal server error'}), 500
 
 @auth_bp.route('/api/logout', methods=['POST'])
 @jwt_required()
 def logout():
     """Logout endpoint (client-side token removal)"""
-    # JWT tokens are stateless, so logout is handled client-side
-    # In a production environment, you might want to implement a blacklist
-    return jsonify({'message': 'Logout successful'}), 200
+    try:
+        current_user_id = get_jwt_identity()
+        current_app.logger.info(f"🚪 Logout for user: {current_user_id}")
+        
+        # JWT tokens are stateless, so logout is handled client-side
+        # In a production environment, you might want to implement a blacklist
+        return jsonify({'message': 'Logout successful'}), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ Logout error: {e}")
+        current_app.logger.error(traceback.format_exc())
+        return jsonify({'error': 'Internal server error'}), 500

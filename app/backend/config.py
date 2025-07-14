@@ -35,8 +35,10 @@ class Config:
     if ALLOWED_ORIGINS_ENV:
         CORS_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS_ENV.split(',') if origin.strip()]
     else:
-        # Default origins for development
+        # Default origins for development and production
         CORS_ORIGINS = [
+            'https://prok-professional-networking-1-iv6a.onrender.com',
+            'https://prok-frontend.onrender.com',
             'http://localhost:5173',
             'http://127.0.0.1:5173',
             'http://localhost:3000',
@@ -58,3 +60,10 @@ class Config:
     MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10MB max file size
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'avi', 'mov', 'wmv'}
     UPLOAD_URL_PREFIX = '/uploads/'
+    
+    # Production settings
+    DEBUG = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    TESTING = False
+    
+    # Logging configuration
+    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
