@@ -10,4 +10,10 @@
 /messages /index.html   200
 
 # Handle favicon and other static assets
-/favicon.ico    /favicon.ico   200 
+/favicon.ico    /favicon.ico   200
+
+# Additional routes that might be accessed
+/dashboard    /index.html   200
+/settings     /index.html   200
+/notifications /index.html   200
+/search       /index.html   200 

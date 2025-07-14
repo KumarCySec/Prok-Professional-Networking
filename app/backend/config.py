@@ -24,6 +24,8 @@ class Config:
     JWT_TOKEN_LOCATION = ['headers']
     JWT_HEADER_NAME = 'Authorization'
     JWT_HEADER_TYPE = 'Bearer'
+    JWT_ERROR_MESSAGE_KEY = 'error'
+    JWT_BLACKLIST_ENABLED = False  # For simplicity, can be enabled later
     
     # CORS configuration
     CORS_HEADERS = 'Content-Type'

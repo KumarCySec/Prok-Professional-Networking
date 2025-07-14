@@ -26,9 +26,11 @@ export const authApi = {
       const response = await fetch(`${API_URL}/api/login`, {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         credentials: 'include',
+        mode: 'cors',
         body: JSON.stringify(credentials),
       });
       
@@ -59,9 +61,11 @@ export const authApi = {
       const response = await fetch(`${API_URL}/api/signup`, {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         credentials: 'include',
+        mode: 'cors',
         body: JSON.stringify(userData),
       });
       
@@ -97,9 +101,11 @@ export const authApi = {
         method: 'GET',
         headers: { 
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         credentials: 'include',
+        mode: 'cors',
       });
       
       const data = await handleResponse(response);

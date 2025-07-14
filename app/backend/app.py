@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from config import Config
@@ -12,16 +12,25 @@ def create_app(config_class=Config):
     
     # Enable CORS - Place this RIGHT AFTER creating the Flask app
     CORS(app,
-         origins=["https://prok-professional-networking-1-iv6a.onrender.com"],
+         origins=[
+             "https://prok-professional-networking-1-iv6a.onrender.com",
+             "http://localhost:5173",
+             "http://127.0.0.1:5173",
+             "http://localhost:3000",
+             "http://127.0.0.1:3000"
+         ],
          supports_credentials=True,
          methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-         allow_headers=["Content-Type", "Authorization"])
+         allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+         expose_headers=["Content-Type", "Authorization"])
     
     app.config.from_object(config_class)
     
     # Session configuration for cross-origin requests
     app.config['SESSION_COOKIE_SAMESITE'] = "None"
     app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = False  # Allow JavaScript access for SPA
+    app.config['SESSION_COOKIE_DOMAIN'] = None  # Let browser handle domain
     
     # Initialize extensions with app
     db.init_app(app)
@@ -73,6 +82,17 @@ def create_app(config_class=Config):
             'cors_working': True
         }
     
+    @app.route('/api/cors-preflight', methods=['OPTIONS'])
+    def cors_preflight():
+        """Handle CORS preflight requests"""
+        response = app.make_default_options_response()
+        response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Accept'
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Max-Age'] = '3600'
+        return response
+    
     @app.route('/api/db-test')
     def db_test():
         """Test endpoint to verify database connection"""
@@ -104,6 +124,23 @@ def create_app(config_class=Config):
         """Test endpoint to verify JWT authentication"""
         current_user_id = get_jwt_identity()
         return {'message': 'JWT working', 'user_id': current_user_id}
+    
+    # Global error handlers
+    @app.errorhandler(404)
+    def not_found(error):
+        return jsonify({'error': 'Resource not found'}), 404
+    
+    @app.errorhandler(500)
+    def internal_error(error):
+        return jsonify({'error': 'Internal server error'}), 500
+    
+    @app.errorhandler(405)
+    def method_not_allowed(error):
+        return jsonify({'error': 'Method not allowed'}), 405
+    
+    @app.errorhandler(413)
+    def request_entity_too_large(error):
+        return jsonify({'error': 'File too large'}), 413
     
     return app
 

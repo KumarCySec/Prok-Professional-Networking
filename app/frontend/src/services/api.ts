@@ -30,8 +30,10 @@ export const authenticatedRequest = async (
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
     credentials: 'include',
+    mode: 'cors',
     headers: {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       'Authorization': `Bearer ${token}`,
       ...options.headers,
     },
@@ -48,8 +50,10 @@ export const apiRequest = async (
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
     credentials: 'include',
+    mode: 'cors',
     headers: {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       ...options.headers,
     },
   });
