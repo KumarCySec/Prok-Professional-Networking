@@ -1,1 +1,13 @@
-/*    /index.html   200 
+# SPA routing - redirect all routes to index.html
+/*    /index.html   200
+
+# Specific routes for better performance
+/login    /index.html   200
+/signup   /index.html   200
+/feed     /index.html   200
+/profile  /index.html   200
+/jobs     /index.html   200
+/messages /index.html   200
+
+# Handle favicon and other static assets
+/favicon.ico    /favicon.ico   200 
