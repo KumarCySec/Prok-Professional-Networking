@@ -20,15 +20,8 @@ def create_app(config_class=Config):
     
     # Enable CORS - Place this RIGHT AFTER creating the Flask app
     CORS(app,
-         origins=[
-             "https://prok-professional-networking-1-iv6a.onrender.com",
-             "https://prok-frontend.onrender.com",
-             "http://localhost:5173",
-             "http://127.0.0.1:5173",
-             "http://localhost:3000",
-             "http://127.0.0.1:3000"
-         ],
-         supports_credentials=True,
+         origins="*",  # Allow all origins for debugging
+         supports_credentials=False,  # Disable credentials for now
          methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
          allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
          expose_headers=["Content-Type", "Authorization"])
@@ -68,9 +61,16 @@ def create_app(config_class=Config):
         from api.auth import auth_bp, init_limiter
         from api.profile import profile_bp
         from api.posts import posts_bp
+        from api.feed import feed_bp
+        from api.jobs import jobs_bp
+        from api.messaging import messaging_bp
+        
         app.register_blueprint(auth_bp)
         app.register_blueprint(profile_bp)
         app.register_blueprint(posts_bp)
+        app.register_blueprint(feed_bp)
+        app.register_blueprint(jobs_bp)
+        app.register_blueprint(messaging_bp)
         app.logger.info("✅ Blueprints registered successfully")
     except Exception as e:
         app.logger.error(f"❌ Failed to register blueprints: {e}")
@@ -135,10 +135,10 @@ def create_app(config_class=Config):
         """Handle CORS preflight requests"""
         try:
             response = app.make_default_options_response()
-            response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
+            response.headers['Access-Control-Allow-Origin'] = '*'
             response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
             response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Accept'
-            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            response.headers['Access-Control-Allow-Credentials'] = 'false'
             response.headers['Access-Control-Max-Age'] = '3600'
             return response
         except Exception as e:
@@ -214,18 +214,8 @@ def create_app(config_class=Config):
     
     return app
 
-# Create app instance for CLI commands (lazy initialization)
-app = None
-
-def get_app():
-    """Get or create the Flask app instance"""
-    global app
-    if app is None:
-        app = create_app()
-    return app
-
-# For Flask CLI compatibility - this is what Flask looks for
-app = get_app()
+# Create the Flask app instance
+app = create_app()
 
 if __name__ == '__main__':
     app.run(debug=True)
