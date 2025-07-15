@@ -60,7 +60,7 @@ def quick_setup():
                     sample_user.save()
                     print("✅ Sample user created successfully")
                 except Exception as e:
-                    print(f"⚠️ Sample user creation failed (this is okay): {e}")
+                   print(f"⚠️ Sample user creation failed (this is okay): {e}")
             
             print("✅ Quick setup completed successfully")
             return True
