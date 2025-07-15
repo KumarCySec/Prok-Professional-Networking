@@ -1,5 +1,5 @@
 // Use the correct backend URL - this should point to your Flask backend service
-const API_URL = import.meta.env.VITE_API_URL || "https://prok-professional-networking-1-iv6a.onrender.com";
+const API_URL = import.meta.env.VITE_API_URL || "https://prok-professional-networking-se45.onrender.com";
 
 // Helper function to get auth token from localStorage
 const getAuthToken = (): string | null => {
