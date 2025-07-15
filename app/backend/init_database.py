@@ -1,65 +1,92 @@
 #!/usr/bin/env python3
 """
-Initialize database and run migrations
-This script should be run on the production server to set up the database
+Database initialization script for production deployment
+Uses Flask-Migrate to ensure proper database schema
 """
 
 import os
 import sys
+import logging
+import traceback
 from flask import Flask
 
-# Add the current directory to Python path
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s: %(message)s'
+)
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from config import Config
-from extensions import db, migrate
-from models.user import User
-from models.profile import Profile
-from models.post import Post
-
 def init_database():
-    """Initialize database and run migrations"""
+    """Initialize database with migrations"""
     try:
-        print("Initializing database...")
+        print("🚀 Starting database initialization...")
         
-        # Create Flask app
+        # Import after path setup
+        from config import Config
+        from extensions import db, migrate
+        from models.user import User
+        
         app = Flask(__name__)
         app.config.from_object(Config)
+        
+        print(f"📊 Database URL: {app.config.get('SQLALCHEMY_DATABASE_URI', 'Not set')[:50]}...")
         
         # Initialize extensions
         db.init_app(app)
         migrate.init_app(app, db)
         
         with app.app_context():
-            print("Creating database tables...")
-            db.create_all()
-            print("✅ Database tables created successfully")
+            print("🗄️ Running database migrations...")
             
-            # Run migrations if needed
+            # Import Flask-Migrate commands
+            from flask_migrate import upgrade, current
+            
+            # Check current migration status
             try:
-                from flask_migrate import upgrade
-                print("Running migrations...")
-                upgrade()
-                print("✅ Migrations completed successfully")
+                current_revision = current()
+                print(f"📋 Current migration revision: {current_revision}")
             except Exception as e:
-                print(f"⚠️ Migration warning: {e}")
+                print(f"⚠️ Could not get current revision (this is normal for new databases): {e}")
             
-            # Test database connection
-            print("Testing database connection...")
+            # Run migrations
+            upgrade()
+            print("✅ Database migrations completed successfully")
+            
+            # Test connection
             from sqlalchemy import text
             result = db.session.execute(text('SELECT 1'))
-            print("✅ Database connection test successful")
+            print("✅ Database connection working")
             
-            # Check if users table exists and has data
+            # Test User model
             user_count = User.query.count()
-            print(f"✅ Users table exists with {user_count} users")
+            print(f"✅ User model working. User count: {user_count}")
+            
+            # Test creating a sample user if none exist
+            if user_count == 0:
+                print("👤 Creating sample user for testing...")
+                try:
+                    sample_user = User(
+                        username="testuser",
+                        email="test@example.com",
+                        password="Test123!"
+                    )
+                    sample_user.save()
+                    print("✅ Sample user created successfully")
+                    print("📝 Sample user credentials:")
+                    print("   Username: testuser")
+                    print("   Email: test@example.com")
+                    print("   Password: Test123!")
+                except Exception as e:
+                    print(f"⚠️ Sample user creation failed (this is okay): {e}")
             
             print("✅ Database initialization completed successfully")
             return True
             
     except Exception as e:
         print(f"❌ Database initialization failed: {e}")
-        import traceback
+        print("🔍 Full traceback:")
         traceback.print_exc()
         return False
 

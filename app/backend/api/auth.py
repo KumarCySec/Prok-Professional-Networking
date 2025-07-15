@@ -155,16 +155,29 @@ def login():
             current_app.logger.warning("❌ Login: Missing required fields")
             return jsonify({'error': 'Username/email and password are required'}), 400
         
+        # Check database connection first
+        try:
+            from sqlalchemy import text
+            db.session.execute(text('SELECT 1'))
+            db.session.commit()
+        except Exception as db_error:
+            current_app.logger.error(f"❌ Database connection failed: {db_error}")
+            return jsonify({'error': 'Database connection error. Please try again later.'}), 503
+        
         # Find user by username or email
         user = None
-        if '@' in username_or_email:
-            # Try to find by email
-            user = User.find_by_email(username_or_email)
-            current_app.logger.info(f"🔍 Searching by email: {username_or_email}")
-        else:
-            # Try to find by username
-            user = User.find_by_username(username_or_email)
-            current_app.logger.info(f"🔍 Searching by username: {username_or_email}")
+        try:
+            if '@' in username_or_email:
+                # Try to find by email
+                user = User.find_by_email(username_or_email)
+                current_app.logger.info(f"🔍 Searching by email: {username_or_email}")
+            else:
+                # Try to find by username
+                user = User.find_by_username(username_or_email)
+                current_app.logger.info(f"🔍 Searching by username: {username_or_email}")
+        except Exception as query_error:
+            current_app.logger.error(f"❌ Database query error: {query_error}")
+            return jsonify({'error': 'Database error. Please try again later.'}), 503
         
         # Check if user exists and password is correct
         if not user:
@@ -198,7 +211,7 @@ def login():
     except Exception as e:
         current_app.logger.error(f"❌ Login unexpected error: {e}")
         current_app.logger.error(traceback.format_exc())
-        return jsonify({'error': 'Internal server error'}), 500
+        return jsonify({'error': 'Internal server error. Please try again later.'}), 500
 
 @auth_bp.route('/api/me', methods=['GET'])
 @jwt_required()
