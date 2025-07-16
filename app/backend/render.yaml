@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: prok-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --log-level info
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.18
+      - key: FLASK_DEBUG
+        value: false
+      - key: LOG_LEVEL
+        value: INFO
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: https://prok-frontend.onrender.com,http://localhost:5173 
