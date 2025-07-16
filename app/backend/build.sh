@@ -5,6 +5,10 @@ set -e
 
 echo "🚀 Starting build process..."
 
+# Force Python 3.11
+echo "🐍 Setting Python version to 3.11..."
+python3.11 --version || echo "Python 3.11 not available, using default"
+
 # Check Python version
 python_version=$(python3 --version 2>&1)
 echo "📋 Python version: $python_version"

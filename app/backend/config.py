@@ -14,14 +14,16 @@ class Config:
     # TEMPORARY FIX: Use PostgreSQL URL directly for immediate deployment
     # TODO: Remove this hardcoded URL once environment variables are working
     if not DATABASE_URL:
-        DATABASE_URL = 'postgresql://prok_database_texr_user:UJ5uuxzIGYa37uWxoiDP3k1CacPQwKX3@dpg-d1rq0mvgi27c73cm8drg-a.oregon-postgres.render.com/prok_database_texr'
-        print("🔧 TEMPORARY FIX: Using hardcoded PostgreSQL URL")
+        DATABASE_URL = 'postgresql+pg8000://prok_database_texr_user:UJ5uuxzIGYa37uWxoiDP3k1CacPQwKX3@dpg-d1rq0mvgi27c73cm8drg-a.oregon-postgres.render.com/prok_database_texr'
+        print("🔧 TEMPORARY FIX: Using hardcoded PostgreSQL URL with pg8000")
     
     # Use DATABASE_URL if available, otherwise fall back to SQLite
     if DATABASE_URL:
         # Handle Render's DATABASE_URL format
         if DATABASE_URL.startswith('postgres://'):
-            DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+            DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql+pg8000://', 1)
+        elif DATABASE_URL.startswith('postgresql://') and '+pg8000' not in DATABASE_URL:
+            DATABASE_URL = DATABASE_URL.replace('postgresql://', 'postgresql+pg8000://', 1)
         SQLALCHEMY_DATABASE_URI = DATABASE_URL
         print(f"🔗 Using PostgreSQL database: {DATABASE_URL[:50]}...")
     else:
