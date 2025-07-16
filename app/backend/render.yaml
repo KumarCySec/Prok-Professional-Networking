@@ -3,7 +3,7 @@ services:
     name: prok-backend
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: chmod +x build.sh && ./build.sh
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --log-level info
     envVars:
       - key: PYTHON_VERSION
