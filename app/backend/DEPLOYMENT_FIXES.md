@@ -1,139 +1,136 @@
-# 🚀 Deployment Fixes for 500 Error Resolution
+# Deployment Fixes for Render
 
-## 🎯 Problem Summary
-- `POST /api/login` was throwing 500 Internal Server Error
-- Render DB logs showed: `psycopg2.errors.UndefinedTable: relation "users" does not exist`
-- Database tables were not being created properly on deployment
+## Issues Fixed
 
-## ✅ Solutions Implemented
+### 1. Database Configuration
+- **Problem**: App was hardcoded to use SQLite, which doesn't persist on Render's free tier
+- **Solution**: Updated `config.py` to use `DATABASE_URL` environment variable from Render
+- **Changes**: 
+  - Added PostgreSQL support with `psycopg2-binary`
+  - Updated database URL handling to support both PostgreSQL and SQLite
+  - Added proper URL format conversion for Render's PostgreSQL
 
-### 1. **New Deployment Script (`render-build.sh`)**
-- **File**: `app/backend/render-build.sh`
-- **Purpose**: Ensures database migrations run before starting the application
-- **Key Features**:
-  - Sets proper Flask environment variables
-  - Runs `flask db upgrade` to apply migrations
-  - Starts Gunicorn with optimized settings
-  - Includes proper error handling and logging
-
-### 2. **Updated Procfile**
-- **File**: `app/backend/Procfile`
-- **Change**: Now uses `./render-build.sh` instead of manual commands
-- **Benefit**: Cleaner, more maintainable deployment process
-
-### 3. **Enhanced Login Route Error Handling**
-- **File**: `app/backend/api/auth.py`
-- **Improvements**:
-  - Database connection check before user queries
-  - Graceful handling of database errors (503 Service Unavailable)
-  - Better error messages for users
-  - Comprehensive logging for debugging
-
-### 4. **Improved Database Initialization**
-- **File**: `app/backend/init_database.py`
+### 2. Database Initialization
+- **Problem**: Database tables weren't being created on app startup
+- **Solution**: Added automatic database initialization in `app.py`
 - **Changes**:
-  - Uses Flask-Migrate instead of `db.create_all()`
-  - Proper migration status checking
-  - Sample user creation for testing
+  - Added `initialize_database()` function that runs on app startup
+  - Creates tables with `db.create_all()`
+  - Runs migrations with `flask_migrate upgrade`
+  - Tests database connection
+
+### 3. CORS Configuration
+- **Problem**: CORS origins didn't include the correct frontend URL
+- **Solution**: Updated CORS origins in `config.py` and `render.yaml`
+- **Changes**:
+  - Added `https://prok-professional-networking-dvec.onrender.com` to allowed origins
+  - Updated `render.yaml` with correct frontend URL
+
+### 4. Error Handling
+- **Problem**: Generic error messages made debugging difficult
+- **Solution**: Improved error handling in auth endpoints
+- **Changes**:
+  - Added specific database connection tests
+  - Better error messages for different failure scenarios
+  - Proper HTTP status codes (503 for database issues, 500 for server errors)
+
+### 5. Build Process
+- **Problem**: Build script didn't handle database setup
+- **Solution**: Updated `build.sh` to create necessary directories
+- **Changes**:
+  - Added uploads directory creation
   - Better error handling and logging
 
-## 🔧 Deployment Process
+## Deployment Steps
 
-### Step 1: Update Render Configuration
-1. **Build Command**: Leave empty (not needed)
-2. **Start Command**: `./render-build.sh`
-3. **Environment Variables**: Ensure these are set:
-   - `FLASK_APP=app.py`
-   - `FLASK_ENV=production`
-   - `DATABASE_URL` (Render managed PostgreSQL)
+### 1. Update Render Environment Variables
+Make sure these environment variables are set in your Render dashboard:
 
-### Step 2: Deploy and Monitor
-1. Push changes to your repository
-2. Monitor Render deployment logs
-3. Check for successful migration messages:
-   ```
-   🚀 Starting Render deployment process...
-   📊 Running database migrations...
-   ✅ Database migrations completed successfully
-   🔧 Starting Gunicorn server...
-   ```
-
-### Step 3: Verify Deployment
-1. **Health Check**: `GET /api/health`
-2. **Database Test**: `GET /api/db-test`
-3. **Login Test**: `POST /api/login` with valid credentials
-
-## 🧪 Testing Commands
-
-### Test Database Connection
-```bash
-curl -X GET https://your-app.onrender.com/api/db-test
+```
+DATABASE_URL = [Your PostgreSQL database URL from Render]
+SECRET_KEY = [Generated secret key]
+JWT_SECRET_KEY = [Generated JWT secret key]
+ALLOWED_ORIGINS = https://prok-professional-networking-dvec.onrender.com,https://prok-frontend.onrender.com,http://localhost:5173
+FLASK_DEBUG = false
+LOG_LEVEL = INFO
 ```
 
-### Test Login (should not return 500)
+### 2. Create PostgreSQL Database
+1. Go to your Render dashboard
+2. Create a new PostgreSQL database service
+3. Copy the database URL
+4. Set it as the `DATABASE_URL` environment variable in your web service
+
+### 3. Deploy the Backend
+1. Push your changes to GitHub
+2. Render will automatically rebuild and deploy
+3. Check the build logs for any errors
+4. Test the `/api/health` endpoint
+
+### 4. Test Database Connection
+After deployment, test the database connection:
+
 ```bash
-curl -X POST https://your-app.onrender.com/api/login \
+# Test the health endpoint
+curl https://your-backend-url.onrender.com/api/health
+
+# Test database connection
+curl https://your-backend-url.onrender.com/api/db-test
+```
+
+### 5. Test Authentication
+Test the login and signup endpoints:
+
+```bash
+# Test signup
+curl -X POST https://your-backend-url.onrender.com/api/signup \
   -H "Content-Type: application/json" \
-  -d '{"username_or_email": "testuser", "password": "Test123!"}'
+  -d '{"username":"testuser","email":"test@example.com","password":"Test123!"}'
+
+# Test login
+curl -X POST https://your-backend-url.onrender.com/api/login \
+  -H "Content-Type: application/json" \
+  -d '{"username_or_email":"testuser","password":"Test123!"}'
 ```
 
-### Expected Responses
-- **Success**: `200 OK` with user data and JWT token
-- **Invalid Credentials**: `401 Unauthorized`
-- **Database Error**: `503 Service Unavailable` (not 500)
+## Troubleshooting
 
-## 🛠️ Troubleshooting
+### If you still get 503 errors:
+1. Check if the PostgreSQL database is running
+2. Verify the `DATABASE_URL` environment variable is set correctly
+3. Check the application logs in Render dashboard
+4. Test the database connection endpoint
 
-### If Migrations Fail
-1. Check Render logs for migration errors
-2. Verify `DATABASE_URL` is correct
-3. Ensure all migration files are committed
-4. Try manual migration: `flask db upgrade`
+### If you get 500 errors:
+1. Check the application logs for specific error messages
+2. Verify all required environment variables are set
+3. Test the database connection manually
 
-### If Tables Still Missing
-1. Run the initialization script manually:
-   ```bash
-   python init_database.py
-   ```
-2. Check database directly:
-   ```sql
-   \dt  -- List tables
-   SELECT * FROM users LIMIT 1;  -- Test users table
-   ```
+### If CORS errors persist:
+1. Verify the frontend URL is in the `ALLOWED_ORIGINS` list
+2. Check that the frontend is making requests to the correct backend URL
+3. Test the CORS endpoint: `/api/cors-test`
 
-### If Login Still Returns 500
-1. Check application logs for specific errors
-2. Verify database connection in `/api/db-test`
-3. Ensure User model is properly imported
-4. Check for any syntax errors in auth.py
+## Files Modified
 
-## 📋 Pre-Deployment Checklist
+1. `config.py` - Database and CORS configuration
+2. `app.py` - Database initialization and error handling
+3. `api/auth.py` - Improved error handling in auth endpoints
+4. `requirements.txt` - Added PostgreSQL support
+5. `build.sh` - Enhanced build process
+6. `render.yaml` - Updated environment variables
+7. `test_db_connection.py` - Database testing script
 
-- [ ] `render-build.sh` is executable (`chmod +x render-build.sh`)
-- [ ] All migration files are committed
-- [ ] `Procfile` updated to use new script
-- [ ] Login route has proper error handling
-- [ ] Environment variables are set in Render
-- [ ] Database URL is correct and accessible
+## Testing Commands
 
-## 🎉 Expected Outcome
+```bash
+# Test database connection locally
+python test_db_connection.py
 
-After implementing these fixes:
-- ✅ No more 500 errors on login
-- ✅ Database tables created automatically
-- ✅ Proper error handling and user feedback
-- ✅ Clean deployment process
-- ✅ Better logging for debugging
+# Test the application locally
+python app.py
 
-## 🔄 Maintenance
-
-### Adding New Migrations
-1. Create migration: `flask db migrate -m "Description"`
-2. Test locally: `flask db upgrade`
-3. Commit and deploy - migrations will run automatically
-
-### Monitoring
-- Check Render logs regularly
-- Monitor `/api/health` endpoint
-- Watch for database connection issues
-- Review error logs for patterns 
+# Test specific endpoints
+curl http://localhost:5000/api/health
+curl http://localhost:5000/api/db-test
+``` 

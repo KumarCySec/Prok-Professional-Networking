@@ -11,9 +11,31 @@ class Config:
     # Database configuration - support for cloud databases
     DATABASE_URL = os.environ.get('DATABASE_URL')
     
-    # For now, force SQLite to avoid psycopg2 issues
-    # TODO: Add PostgreSQL support later when psycopg2 compatibility is resolved
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///prok_db.sqlite'
+    # TEMPORARY FIX: Use PostgreSQL URL directly for immediate deployment
+    # TODO: Remove this hardcoded URL once environment variables are working
+    if not DATABASE_URL:
+        DATABASE_URL = 'postgresql://prok_database_texr_user:UJ5uuxzIGYa37uWxoiDP3k1CacPQwKX3@dpg-d1rq0mvgi27c73cm8drg-a.oregon-postgres.render.com/prok_database_texr'
+        print("🔧 TEMPORARY FIX: Using hardcoded PostgreSQL URL")
+    
+    # Use DATABASE_URL if available, otherwise fall back to SQLite
+    if DATABASE_URL:
+        # Handle Render's DATABASE_URL format
+        if DATABASE_URL.startswith('postgres://'):
+            DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+        SQLALCHEMY_DATABASE_URI = DATABASE_URL
+        print(f"🔗 Using PostgreSQL database: {DATABASE_URL[:50]}...")
+    else:
+        # Fallback to SQLite for development
+        SQLALCHEMY_DATABASE_URI = 'sqlite:///prok_db.sqlite'
+        print("⚠️ No DATABASE_URL found, using SQLite (this won't work on Render!)")
+    
+    # Force PostgreSQL for production (Render)
+    if os.environ.get('RENDER', 'false').lower() == 'true' or 'render.com' in os.environ.get('HOSTNAME', ''):
+        if not DATABASE_URL:
+            raise ValueError("DATABASE_URL environment variable is required for production deployment on Render")
+        SQLALCHEMY_DATABASE_URI = DATABASE_URL
+        print("🚀 Production mode: Using PostgreSQL database")
+    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # JWT configuration
@@ -38,6 +60,8 @@ class Config:
             'https://prok-professional-networking-1-iv6a.onrender.com',
             'https://prok-frontend.onrender.com',
             'https://prok-professional-networking-se45.onrender.com',
+            'https://prok-professional-networking-dvec.onrender.com',
+            'https://prok-frontend-4h1s.onrender.com',
             'http://localhost:5173',
             'http://127.0.0.1:5173',
             'http://localhost:3000',

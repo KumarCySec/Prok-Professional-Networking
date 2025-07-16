@@ -51,6 +51,15 @@ def create_app(config_class=Config):
             from models.user import User
             from models.profile import Profile  # Import profile model to avoid import errors
             app.logger.info("✅ Models imported successfully")
+            
+            # Initialize database tables
+            try:
+                db.create_all()
+                app.logger.info("✅ Database tables created/verified")
+            except Exception as db_error:
+                app.logger.error(f"❌ Database table creation failed: {db_error}")
+                app.logger.error(traceback.format_exc())
+                # Don't raise here as migrations might handle this
     except Exception as e:
         app.logger.error(f"❌ Failed to import models: {e}")
         app.logger.error(traceback.format_exc())
@@ -171,6 +180,84 @@ def create_app(config_class=Config):
                 'message': 'Database connection failed',
                 'error': str(e)
             }, 500
+    
+    @app.route('/api/debug-config')
+    def debug_config():
+        """Debug endpoint to check configuration"""
+        try:
+            return {
+                'status': 'ok',
+                'database_url_set': bool(os.environ.get('DATABASE_URL')),
+                'database_url_preview': os.environ.get('DATABASE_URL', 'Not set')[:50] + '...' if os.environ.get('DATABASE_URL') else 'Not set',
+                'sqlalchemy_uri_preview': app.config.get('SQLALCHEMY_DATABASE_URI', 'Not set')[:50] + '...' if app.config.get('SQLALCHEMY_DATABASE_URI') else 'Not set',
+                'is_postgresql': 'postgresql://' in app.config.get('SQLALCHEMY_DATABASE_URI', ''),
+                'is_sqlite': 'sqlite://' in app.config.get('SQLALCHEMY_DATABASE_URI', ''),
+                'render_env': os.environ.get('RENDER', 'false'),
+                'hostname': os.environ.get('HOSTNAME', 'Not set')
+            }
+        except Exception as e:
+            app.logger.error(f"❌ Debug config error: {e}")
+            return {
+                'status': 'error',
+                'message': 'Debug config failed',
+                'error': str(e)
+            }, 500
+    
+    def initialize_database():
+        """Initialize database tables and run migrations"""
+        try:
+            with app.app_context():
+                app.logger.info("🗄️ Initializing database...")
+                app.logger.info(f"📊 Database URL: {app.config.get('SQLALCHEMY_DATABASE_URI', 'Not set')[:50]}...")
+                
+                # Test database connection first
+                try:
+                    from sqlalchemy import text
+                    db.session.execute(text('SELECT 1'))
+                    db.session.commit()
+                    app.logger.info("✅ Database connection test successful")
+                except Exception as conn_error:
+                    app.logger.error(f"❌ Database connection failed: {conn_error}")
+                    app.logger.error(traceback.format_exc())
+                    raise
+                
+                # Create all tables
+                try:
+                    db.create_all()
+                    app.logger.info("✅ Database tables created/verified")
+                except Exception as table_error:
+                    app.logger.error(f"❌ Table creation failed: {table_error}")
+                    app.logger.error(traceback.format_exc())
+                    raise
+                
+                # Run migrations if available
+                try:
+                    from flask_migrate import upgrade
+                    upgrade()
+                    app.logger.info("✅ Database migrations completed")
+                except Exception as migration_error:
+                    app.logger.warning(f"⚠️ Migration failed (this is normal for new databases): {migration_error}")
+                
+                # Test User model
+                try:
+                    user_count = User.query.count()
+                    app.logger.info(f"✅ User model working. User count: {user_count}")
+                except Exception as model_error:
+                    app.logger.error(f"❌ User model test failed: {model_error}")
+                    app.logger.error(traceback.format_exc())
+                    raise
+                
+        except Exception as e:
+            app.logger.error(f"❌ Database initialization failed: {e}")
+            app.logger.error(traceback.format_exc())
+            raise
+    
+    # Initialize database on startup
+    try:
+        initialize_database()
+    except Exception as e:
+        app.logger.error(f"❌ Failed to initialize database: {e}")
+        # Don't raise here to allow the app to start even if DB init fails
     
     @app.route('/api/test-auth')
     @jwt_required()

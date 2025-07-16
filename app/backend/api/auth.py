@@ -92,19 +92,39 @@ def signup():
             current_app.logger.warning(f"❌ Signup: Password complexity failed: {password_message}")
             return jsonify({'error': password_message}), 400
         
-        # Check if user already exists
-        existing_user = User.find_by_username(username)
-        if existing_user:
-            current_app.logger.warning(f"❌ Signup: Username already exists: {username}")
-            return jsonify({'error': 'Username already exists'}), 400
+        # Check database connection first
+        try:
+            from sqlalchemy import text
+            db.session.execute(text('SELECT 1'))
+            db.session.commit()
+            current_app.logger.info("✅ Database connection test successful")
+        except Exception as db_error:
+            current_app.logger.error(f"❌ Database connection failed: {db_error}")
+            current_app.logger.error(traceback.format_exc())
+            return jsonify({'error': 'Database connection error. Please try again later.'}), 503
         
-        existing_email = User.find_by_email(email)
-        if existing_email:
-            current_app.logger.warning(f"❌ Signup: Email already exists: {email}")
-            return jsonify({'error': 'Email already exists'}), 400
+        # Check if user already exists
+        try:
+            existing_user = User.find_by_username(username)
+            if existing_user:
+                current_app.logger.warning(f"❌ Signup: Username already exists: {username}")
+                return jsonify({'error': 'Username already exists'}), 400
+            
+            existing_email = User.find_by_email(email)
+            if existing_email:
+                current_app.logger.warning(f"❌ Signup: Email already exists: {email}")
+                return jsonify({'error': 'Email already exists'}), 400
+        except Exception as query_error:
+            current_app.logger.error(f"❌ Database query error: {query_error}")
+            current_app.logger.error(traceback.format_exc())
+            return jsonify({'error': 'Database error. Please try again later.'}), 503
         
         # Create new user
-        new_user = User(username=username, email=email, password=password)
+        try:
+            new_user = User(username=username, email=email, password=password)
+        except ValueError as e:
+            current_app.logger.error(f"❌ User creation error: {e}")
+            return jsonify({'error': str(e)}), 400
         
         # Save user to database
         try:
@@ -113,12 +133,22 @@ def signup():
         except ValueError as e:
             current_app.logger.error(f"❌ Signup save error: {e}")
             return jsonify({'error': str(e)}), 400
+        except Exception as save_error:
+            current_app.logger.error(f"❌ Signup save error: {save_error}")
+            current_app.logger.error(traceback.format_exc())
+            db.session.rollback()
+            return jsonify({'error': 'Database error. Please try again later.'}), 503
         
         # Generate JWT token
-        access_token = create_access_token(
-            identity=str(new_user.id),
-            expires_delta=timedelta(hours=24)
-        )
+        try:
+            access_token = create_access_token(
+                identity=str(new_user.id),
+                expires_delta=timedelta(hours=24)
+            )
+        except Exception as token_error:
+            current_app.logger.error(f"❌ Token generation error: {token_error}")
+            current_app.logger.error(traceback.format_exc())
+            return jsonify({'error': 'Authentication error. Please try again later.'}), 500
         
         # Return success response
         return jsonify({
@@ -131,7 +161,7 @@ def signup():
         current_app.logger.error(f"❌ Signup unexpected error: {e}")
         current_app.logger.error(traceback.format_exc())
         db.session.rollback()
-        return jsonify({'error': 'Internal server error'}), 500
+        return jsonify({'error': 'Internal server error. Please try again later.'}), 500
 
 @auth_bp.route('/api/login', methods=['POST'])
 def login():
@@ -199,44 +229,29 @@ def login():
             current_app.logger.warning(f"❌ Login: Invalid password for user: {username_or_email}")
             return jsonify({'error': 'Invalid username/email or password'}), 401
         
-        # Check if user is active
-        if not user.is_active:
-            current_app.logger.warning(f"❌ Login: Inactive account: {username_or_email}")
-            return jsonify({'error': 'Account is deactivated'}), 401
-        
         # Generate JWT token
         try:
             access_token = create_access_token(
                 identity=str(user.id),
                 expires_delta=timedelta(hours=24)
             )
-            current_app.logger.info(f"✅ JWT token generated for user: {username_or_email}")
-        except Exception as jwt_error:
-            current_app.logger.error(f"❌ JWT token generation error: {jwt_error}")
+            current_app.logger.info(f"✅ Login successful for user: {username_or_email}")
+        except Exception as token_error:
+            current_app.logger.error(f"❌ Token generation error: {token_error}")
             current_app.logger.error(traceback.format_exc())
             return jsonify({'error': 'Authentication error. Please try again later.'}), 500
-        
-        # Convert user to dict
-        try:
-            user_dict = user.to_dict()
-            current_app.logger.info(f"✅ User data converted to dict")
-        except Exception as dict_error:
-            current_app.logger.error(f"❌ User dict conversion error: {dict_error}")
-            current_app.logger.error(traceback.format_exc())
-            return jsonify({'error': 'User data error. Please try again later.'}), 500
-        
-        current_app.logger.info(f"✅ Login successful for user: {username_or_email}")
         
         # Return success response
         return jsonify({
             'message': 'Login successful',
-            'user': user_dict,
+            'user': user.to_dict(),
             'access_token': access_token
         }), 200
         
     except Exception as e:
         current_app.logger.error(f"❌ Login unexpected error: {e}")
         current_app.logger.error(traceback.format_exc())
+        db.session.rollback()
         return jsonify({'error': 'Internal server error. Please try again later.'}), 500
 
 @auth_bp.route('/api/me', methods=['GET'])

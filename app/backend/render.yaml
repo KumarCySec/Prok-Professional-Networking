@@ -19,4 +19,4 @@ services:
       - key: JWT_SECRET_KEY
         generateValue: true
       - key: ALLOWED_ORIGINS
-        value: https://prok-frontend.onrender.com,http://localhost:5173 
+        value: https://prok-professional-networking-dvec.onrender.com,https://prok-frontend-4h1s.onrender.com,http://localhost:5173 

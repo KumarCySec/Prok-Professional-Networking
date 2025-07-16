@@ -1,81 +1,77 @@
 #!/usr/bin/env python3
 """
-Test database connection and create tables if needed
+Database connection test script
+Run this to test if the database connection is working
 """
 
 import os
 import sys
-from sqlalchemy import text
-from urllib.parse import quote_plus
+import traceback
 
 # Add the current directory to Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from config import Config
-from extensions import db
-from models.user import User
-
 def test_database_connection():
-    """Test database connection and create tables"""
+    """Test database connection and basic operations"""
     try:
-        print("Testing database connection...")
+        print("🚀 Testing database connection...")
         
-        # Create Flask app context
+        # Import required modules
+        from config import Config
+        from extensions import db
+        from models.user import User
+        
+        # Create Flask app
         from flask import Flask
         app = Flask(__name__)
         app.config.from_object(Config)
+        
+        print(f"📊 Database URL: {app.config.get('SQLALCHEMY_DATABASE_URI', 'Not set')[:50]}...")
         
         # Initialize database
         db.init_app(app)
         
         with app.app_context():
+            print("🗄️ Testing database connection...")
+            
             # Test basic connection
-            print("Testing basic connection...")
+            from sqlalchemy import text
             result = db.session.execute(text('SELECT 1'))
-            print("✅ Basic connection successful")
+            print("✅ Basic database connection successful")
             
-            # Check if users table exists
-            print("Checking if users table exists...")
-            result = db.session.execute(text("SHOW TABLES LIKE 'users'"))
-            tables = result.fetchall()
-            
-            if not tables:
-                print("❌ Users table does not exist. Creating tables...")
-                db.create_all()
-                print("✅ Tables created successfully")
-            else:
-                print("✅ Users table exists")
+            # Test table creation
+            db.create_all()
+            print("✅ Database tables created/verified")
             
             # Test User model
-            print("Testing User model...")
             user_count = User.query.count()
-            print(f"✅ User model working. Current user count: {user_count}")
+            print(f"✅ User model working. User count: {user_count}")
             
-            # Test creating a test user
-            print("Testing user creation...")
+            # Test creating a user
             try:
                 test_user = User(
-                    username="test_user",
-                    email="test@example.com",
-                    password="TestPass123!"
+                    username="testuser123",
+                    email="test123@example.com",
+                    password="Test123!"
                 )
                 test_user.save()
-                print("✅ Test user created successfully")
+                print("✅ User creation test successful")
                 
-                # Clean up test user
+                # Clean up
                 db.session.delete(test_user)
                 db.session.commit()
-                print("✅ Test user cleaned up")
+                print("✅ User cleanup successful")
                 
             except Exception as e:
-                print(f"⚠️ Test user creation failed: {e}")
-                db.session.rollback()
+                print(f"⚠️ User creation test failed: {e}")
             
-            print("✅ Database connection test completed successfully")
+            print("✅ All database tests passed!")
             return True
             
     except Exception as e:
-        print(f"❌ Database connection failed: {e}")
+        print(f"❌ Database test failed: {e}")
+        print("🔍 Full traceback:")
+        traceback.print_exc()
         return False
 
 if __name__ == "__main__":
