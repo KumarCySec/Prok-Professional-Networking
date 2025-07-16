@@ -39,6 +39,7 @@ class Config:
         CORS_ORIGINS = [
             'https://prok-professional-networking-1-iv6a.onrender.com',
             'https://prok-frontend.onrender.com',
+            'https://prok-professional-networking-se45.onrender.com',
             'http://localhost:5173',
             'http://127.0.0.1:5173',
             'http://localhost:3000',

@@ -160,8 +160,10 @@ def login():
             from sqlalchemy import text
             db.session.execute(text('SELECT 1'))
             db.session.commit()
+            current_app.logger.info("✅ Database connection test successful")
         except Exception as db_error:
             current_app.logger.error(f"❌ Database connection failed: {db_error}")
+            current_app.logger.error(traceback.format_exc())
             return jsonify({'error': 'Database connection error. Please try again later.'}), 503
         
         # Find user by username or email
@@ -177,6 +179,7 @@ def login():
                 current_app.logger.info(f"🔍 Searching by username: {username_or_email}")
         except Exception as query_error:
             current_app.logger.error(f"❌ Database query error: {query_error}")
+            current_app.logger.error(traceback.format_exc())
             return jsonify({'error': 'Database error. Please try again later.'}), 503
         
         # Check if user exists and password is correct
@@ -184,7 +187,15 @@ def login():
             current_app.logger.warning(f"❌ Login: User not found: {username_or_email}")
             return jsonify({'error': 'Invalid username/email or password'}), 401
         
-        if not user.check_password(password):
+        try:
+            password_check = user.check_password(password)
+            current_app.logger.info(f"🔐 Password check result: {password_check}")
+        except Exception as password_error:
+            current_app.logger.error(f"❌ Password check error: {password_error}")
+            current_app.logger.error(traceback.format_exc())
+            return jsonify({'error': 'Authentication error. Please try again later.'}), 500
+        
+        if not password_check:
             current_app.logger.warning(f"❌ Login: Invalid password for user: {username_or_email}")
             return jsonify({'error': 'Invalid username/email or password'}), 401
         
@@ -194,17 +205,32 @@ def login():
             return jsonify({'error': 'Account is deactivated'}), 401
         
         # Generate JWT token
-        access_token = create_access_token(
-            identity=str(user.id),
-            expires_delta=timedelta(hours=24)
-        )
+        try:
+            access_token = create_access_token(
+                identity=str(user.id),
+                expires_delta=timedelta(hours=24)
+            )
+            current_app.logger.info(f"✅ JWT token generated for user: {username_or_email}")
+        except Exception as jwt_error:
+            current_app.logger.error(f"❌ JWT token generation error: {jwt_error}")
+            current_app.logger.error(traceback.format_exc())
+            return jsonify({'error': 'Authentication error. Please try again later.'}), 500
+        
+        # Convert user to dict
+        try:
+            user_dict = user.to_dict()
+            current_app.logger.info(f"✅ User data converted to dict")
+        except Exception as dict_error:
+            current_app.logger.error(f"❌ User dict conversion error: {dict_error}")
+            current_app.logger.error(traceback.format_exc())
+            return jsonify({'error': 'User data error. Please try again later.'}), 500
         
         current_app.logger.info(f"✅ Login successful for user: {username_or_email}")
         
         # Return success response
         return jsonify({
             'message': 'Login successful',
-            'user': user.to_dict(),
+            'user': user_dict,
             'access_token': access_token
         }), 200
         
