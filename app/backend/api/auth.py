@@ -155,18 +155,6 @@ def login():
             current_app.logger.warning("❌ Login: Missing required fields")
             return jsonify({'error': 'Username/email and password are required'}), 400
         
-<<<<<<< Updated upstream
-        # Find user by username or email
-        user = None
-        if '@' in username_or_email:
-            # Try to find by email
-            user = User.find_by_email(username_or_email)
-            current_app.logger.info(f"🔍 Searching by email: {username_or_email}")
-        else:
-            # Try to find by username
-            user = User.find_by_username(username_or_email)
-            current_app.logger.info(f"🔍 Searching by username: {username_or_email}")
-=======
         # Check database connection first
         try:
             from sqlalchemy import text
@@ -193,7 +181,6 @@ def login():
             current_app.logger.error(f"❌ Database query error: {query_error}")
             current_app.logger.error(traceback.format_exc())
             return jsonify({'error': 'Database error. Please try again later.'}), 503
->>>>>>> Stashed changes
         
         # Check if user exists and password is correct
         if not user:
