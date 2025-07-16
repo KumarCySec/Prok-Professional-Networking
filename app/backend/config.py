@@ -11,12 +11,9 @@ class Config:
     # Database configuration - support for cloud databases
     DATABASE_URL = os.environ.get('DATABASE_URL')
     
-    # Handle PostgreSQL URL format conversion
-    if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
-        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-    
-    # Use SQLite as fallback (no external dependencies)
-    SQLALCHEMY_DATABASE_URI = DATABASE_URL or 'sqlite:///prok_db.sqlite'
+    # For now, force SQLite to avoid psycopg2 issues
+    # TODO: Add PostgreSQL support later when psycopg2 compatibility is resolved
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///prok_db.sqlite'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # JWT configuration
